@@ -16,6 +16,8 @@ if (Test-Path $PublishDir) {
 }
 
 # Publish als self-contained single-file
+# Trimming nicht moeglich wegen WinForms (NotifyIcon/Tray)
+# ~155 MB ist normal - enthaelt .NET Runtime + WPF + WinForms
 dotnet publish $ProjectDir `
     -c Release `
     -r win-x64 `
