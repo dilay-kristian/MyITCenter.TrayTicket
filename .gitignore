@@ -1,0 +1,22 @@
+## .NET / Visual Studio
+bin/
+obj/
+publish/
+*.user
+*.suo
+*.userprefs
+.vs/
+
+## Build output
+*.dll
+*.exe
+*.pdb
+!src/**/Resources/**
+
+## Installer output
+installer/output/
+
+## OS
+Thumbs.db
+Desktop.ini
+.DS_Store

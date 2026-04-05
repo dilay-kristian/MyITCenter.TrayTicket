@@ -1,0 +1,30 @@
+<Window x:Class="MyitCenter.TrayTicketTool.Views.RegionSelectionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        Cursor="Cross"
+        KeyDown="Window_KeyDown">
+    <Canvas x:Name="OverlayCanvas">
+        <!-- Frozen screenshot as background -->
+        <Image x:Name="BackgroundImage" Stretch="None" />
+
+        <!-- Dark overlay with hole -->
+        <Path x:Name="DarkOverlay" Fill="#88000000" />
+
+        <!-- Selection rectangle border -->
+        <Rectangle x:Name="SelectionRect"
+                   Stroke="#2980B9" StrokeThickness="2"
+                   StrokeDashArray="4 2"
+                   Fill="#222980B9"
+                   Visibility="Collapsed" />
+
+        <!-- Size indicator -->
+        <Border x:Name="SizeIndicator" Background="#CC000000" CornerRadius="3" Padding="6,3" Visibility="Collapsed">
+            <TextBlock x:Name="SizeText" Foreground="White" FontSize="12" />
+        </Border>
+    </Canvas>
+</Window>

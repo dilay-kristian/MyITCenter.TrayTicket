@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>Resources\tray-icon.ico</ApplicationIcon>
+    <AssemblyName>MyitCenter.TrayTicketTool</AssemblyName>
+    <RootNamespace>MyitCenter.TrayTicketTool</RootNamespace>
+    <Version>1.0.0</Version>
+    <Company>myit.center</Company>
+    <Product>myit.center Ticket Tool</Product>
+    <Description>System-Tray Ticket Tool fuer myit.center</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\tray-icon.ico" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,177 @@
+<Window x:Class="MyitCenter.TrayTicketTool.Views.TicketWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="myit.center - Ticket erstellen"
+        Width="550" Height="680"
+        MinWidth="450" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="CanResizeWithGrip"
+        Background="{StaticResource BackgroundBrush}">
+
+    <Window.Resources>
+        <Style x:Key="AccentButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="20,8" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{StaticResource AccentHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#E0E0E0" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Padding" Value="20,8" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#D0D0D0" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Ticket erstellen"
+                       FontSize="22" FontWeight="Bold"
+                       Foreground="{StaticResource TextBrush}" />
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <TextBlock Text="Angemeldet als: " FontSize="12"
+                           Foreground="{StaticResource SubtextBrush}" />
+                <TextBlock Text="{Binding CurrentUsername}" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextBrush}" />
+                <TextBlock Text="  |  " FontSize="12"
+                           Foreground="{StaticResource SubtextBrush}" />
+                <TextBlock Text="{Binding ConnectionStatus}" FontSize="12"
+                           Foreground="{StaticResource SubtextBrush}" />
+            </StackPanel>
+        </StackPanel>
+
+        <!-- Screenshot Section -->
+        <Border Grid.Row="1" Background="{StaticResource CardBrush}" CornerRadius="6" Padding="16" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="Screenshot-Modus:" FontWeight="SemiBold" FontSize="13"
+                           Foreground="{StaticResource TextBrush}" Margin="0,0,0,8" />
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <RadioButton Content="Bereich auswaehlen"
+                                 IsChecked="{Binding IsRegionMode}"
+                                 Margin="0,0,16,0" VerticalContentAlignment="Center" />
+                    <RadioButton Content="Gesamter Bildschirm"
+                                 IsChecked="{Binding IsFullScreenMode}"
+                                 Margin="0,0,16,0" VerticalContentAlignment="Center" />
+                    <RadioButton Content="Fenster auswaehlen"
+                                 IsChecked="{Binding IsWindowMode}"
+                                 VerticalContentAlignment="Center" />
+                </StackPanel>
+
+                <Button Content="Screenshot aufnehmen"
+                        Command="{Binding CaptureScreenshotCommand}"
+                        Style="{StaticResource AccentButton}"
+                        HorizontalAlignment="Left" />
+            </StackPanel>
+        </Border>
+
+        <!-- Screenshot Preview -->
+        <Border Grid.Row="2" Background="{StaticResource CardBrush}" CornerRadius="6" Padding="8" Margin="0,0,0,12">
+            <Grid>
+                <TextBlock Text="Noch kein Screenshot aufgenommen"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Foreground="{StaticResource SubtextBrush}" FontSize="14"
+                           Visibility="{Binding NoScreenshotVisibility}" />
+                <Image Source="{Binding ScreenshotPreview}"
+                       Stretch="Uniform"
+                       RenderOptions.BitmapScalingMode="HighQuality" />
+            </Grid>
+        </Border>
+
+        <!-- Description -->
+        <Border Grid.Row="3" Background="{StaticResource CardBrush}" CornerRadius="6" Padding="16" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="Problembeschreibung:" FontWeight="SemiBold" FontSize="13"
+                           Foreground="{StaticResource TextBrush}" Margin="0,0,0,8" />
+                <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True" TextWrapping="Wrap"
+                         Height="90" FontSize="13"
+                         Padding="8,6"
+                         BorderBrush="#DDD" BorderThickness="1"
+                         VerticalScrollBarVisibility="Auto" />
+            </StackPanel>
+        </Border>
+
+        <!-- System Info -->
+        <Expander Grid.Row="4" Header="Systeminformationen" Margin="0,0,0,16"
+                  Foreground="{StaticResource SubtextBrush}" FontSize="12">
+            <Border Background="{StaticResource CardBrush}" CornerRadius="4" Padding="12" Margin="0,4,0,0">
+                <TextBlock Text="{Binding SystemInfoSummary}" FontSize="12"
+                           Foreground="{StaticResource TextBrush}" />
+            </Border>
+        </Expander>
+
+        <!-- Buttons + Status -->
+        <Grid Grid.Row="5">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="{Binding StatusMessage}"
+                       Foreground="{StaticResource SubtextBrush}" FontSize="12"
+                       VerticalAlignment="Center" />
+
+            <Button Grid.Column="1" Content="Abbrechen"
+                    Command="{Binding CancelCommand}"
+                    Style="{StaticResource SecondaryButton}"
+                    Margin="0,0,8,0" />
+
+            <Button Grid.Column="2" Content="Ticket erstellen"
+                    Command="{Binding SubmitTicketCommand}"
+                    Style="{StaticResource AccentButton}" />
+        </Grid>
+    </Grid>
+</Window>
