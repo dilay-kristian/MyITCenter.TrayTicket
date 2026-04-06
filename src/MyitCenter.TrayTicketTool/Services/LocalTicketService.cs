@@ -15,7 +15,7 @@ public class LocalTicketService : ITicketService
         WriteIndented = true
     };
 
-    public async Task<string> SubmitTicketAsync(Ticket ticket, byte[] screenshotPng)
+    public async Task<TicketResult> SubmitTicketAsync(Ticket ticket, byte[] screenshotPng)
     {
         var ticketDir = Path.Combine(BaseDir, ticket.Id);
         Directory.CreateDirectory(ticketDir);
@@ -30,6 +30,10 @@ public class LocalTicketService : ITicketService
         var json = JsonSerializer.Serialize(ticket, JsonOptions);
         await File.WriteAllTextAsync(jsonPath, json);
 
-        return ticketDir;
+        return new TicketResult
+        {
+            Submitted = false,
+            LocalPath = ticketDir
+        };
     }
 }

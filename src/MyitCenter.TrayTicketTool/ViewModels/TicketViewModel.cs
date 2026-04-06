@@ -213,15 +213,26 @@ public class TicketViewModel : INotifyPropertyChanged
             };
 
             var pngBytes = BitmapToImageSourceConverter.ToByteArray(_currentScreenshot);
-            var path = await _ticketService.SubmitTicketAsync(ticket, pngBytes);
+            var result = await _ticketService.SubmitTicketAsync(ticket, pngBytes);
 
-            var modeText = IsConnected ? "gesendet" : "lokal gespeichert";
-            StatusMessage = $"Ticket {modeText}: {ticket.Id}";
-            System.Windows.MessageBox.Show(
-                $"Ticket wurde erfolgreich {modeText}!\n\nTicket-ID: {ticket.Id}\nBenutzer: {ticket.Username}",
-                "Ticket erstellt",
-                System.Windows.MessageBoxButton.OK,
-                System.Windows.MessageBoxImage.Information);
+            if (result.Submitted && result.TicketNumber != null)
+            {
+                StatusMessage = $"Ticket gesendet: {result.TicketNumber}";
+                System.Windows.MessageBox.Show(
+                    $"Ticket wurde erfolgreich erstellt!\n\nTicket-Nr: {result.TicketNumber}\nBenutzer: {ticket.Username}",
+                    "Ticket erstellt",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+            }
+            else
+            {
+                StatusMessage = $"Ticket lokal gespeichert: {ticket.Id}";
+                System.Windows.MessageBox.Show(
+                    $"Ticket wurde lokal gespeichert.\n\nDie Verbindung zum Server konnte nicht hergestellt werden.\nDas Ticket wird beim naechsten Mal erneut versucht.\n\nPfad: {result.LocalPath}",
+                    "Ticket lokal gespeichert",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Warning);
+            }
 
             RequestClose?.Invoke();
         }

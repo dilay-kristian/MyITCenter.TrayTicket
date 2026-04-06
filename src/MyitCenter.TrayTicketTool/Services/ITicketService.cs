@@ -4,5 +4,5 @@ namespace MyitCenter.TrayTicketTool.Services;
 
 public interface ITicketService
 {
-    Task<string> SubmitTicketAsync(Ticket ticket, byte[] screenshotPng);
+    Task<TicketResult> SubmitTicketAsync(Ticket ticket, byte[] screenshotPng);
 }

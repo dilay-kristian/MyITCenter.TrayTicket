@@ -22,12 +22,12 @@ public class ApiTicketService : ITicketService
         _config = config;
     }
 
-    public async Task<string> SubmitTicketAsync(Ticket ticket, byte[] screenshotPng)
+    public async Task<TicketResult> SubmitTicketAsync(Ticket ticket, byte[] screenshotPng)
     {
         ticket.DeviceId = _config.DeviceId;
 
         // Lokal speichern als Backup
-        var localPath = await _localFallback.SubmitTicketAsync(ticket, screenshotPng);
+        var localResult = await _localFallback.SubmitTicketAsync(ticket, screenshotPng);
 
         try
         {
@@ -51,14 +51,28 @@ public class ApiTicketService : ITicketService
             var response = await client.PostAsync(url, content);
             response.EnsureSuccessStatusCode();
 
+            // API Response auswerten: {"success":true,"ticket_number":"TKT-2026-00175","ticket_id":230}
+            var responseJson = await response.Content.ReadAsStringAsync();
+            var apiResponse = JsonSerializer.Deserialize<JsonElement>(responseJson);
+
+            string? ticketNumber = null;
+            if (apiResponse.TryGetProperty("ticket_number", out var tn))
+                ticketNumber = tn.GetString();
+
             ticket.Status = "submitted";
-            return localPath;
+
+            return new TicketResult
+            {
+                Submitted = true,
+                TicketNumber = ticketNumber,
+                LocalPath = localResult.LocalPath
+            };
         }
         catch (HttpRequestException)
         {
-            // API noch nicht verfuegbar — lokales Backup bleibt bestehen
+            // API nicht erreichbar — lokales Backup bleibt bestehen
             ticket.Status = "local";
-            return localPath;
+            return localResult;
         }
     }
 }

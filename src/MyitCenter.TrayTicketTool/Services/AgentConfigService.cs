@@ -18,10 +18,18 @@ public class AgentConfigService
 
     public AgentConfig? Load()
     {
-        if (!File.Exists(ConfigPath))
-            return null;
+        try
+        {
+            if (!File.Exists(ConfigPath))
+                return null;
 
-        var json = File.ReadAllText(ConfigPath);
-        return JsonSerializer.Deserialize<AgentConfig>(json, JsonOptions);
+            var json = File.ReadAllText(ConfigPath);
+            return JsonSerializer.Deserialize<AgentConfig>(json, JsonOptions);
+        }
+        catch
+        {
+            // Ungueltige config.json — App laeuft im Offline-Modus weiter
+            return null;
+        }
     }
 }
