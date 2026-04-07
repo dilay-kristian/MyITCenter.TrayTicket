@@ -29,9 +29,15 @@ public class TicketViewModel : INotifyPropertyChanged
         _agentConfig = new AgentConfigService().Load();
 
         if (_agentConfig?.IsValid == true)
+        {
             _ticketService = new ApiTicketService(_agentConfig);
+            Services.LogService.Info("TicketViewModel: API-Modus aktiv");
+        }
         else
+        {
             _ticketService = new LocalTicketService();
+            Services.LogService.Info("TicketViewModel: Offline-Modus (LocalTicketService)");
+        }
 
         _systemInfo = _systemInfoService.Collect();
 

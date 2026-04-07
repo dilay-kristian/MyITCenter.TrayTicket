@@ -17,6 +17,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="SharpAvi" Version="3.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="Resources\tray-icon.ico" />
   </ItemGroup>
 

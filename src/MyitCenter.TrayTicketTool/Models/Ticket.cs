@@ -10,5 +10,6 @@ public class Ticket
     public ScreenshotMode CaptureMode { get; set; }
     public SystemInfo SystemInfo { get; set; } = new();
     public int? DeviceId { get; set; }
+    public string? MeshcentralLink { get; set; }
     public string Status { get; set; } = "local";
 }

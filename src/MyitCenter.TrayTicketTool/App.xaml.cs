@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.IO;
 using System.Threading;
 using System.Windows;
 using MyitCenter.TrayTicketTool.Models;
@@ -18,9 +19,37 @@ public partial class App : System.Windows.Application
     private AgentConfig? _agentConfig;
     private TicketStatusService? _statusService;
     private TicketReplyService? _replyService;
+    private TicketMessagesService? _messagesService;
+    private ScreenRecordingService? _screenRecordingService;
+    private ScreenRecordingOverlay? _recordingOverlay;
+    private Forms.ToolStripMenuItem? _screenRecordItem;
     private Forms.ToolStripMenuItem? _myTicketsItem;
 
-    protected override void OnStartup(StartupEventArgs e)
+    private void Application_Startup(object sender, StartupEventArgs e)
+    {
+        // Crash-Log neben die EXE schreiben — funktioniert auch wenn alles andere fehlschlaegt
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            WriteCrashLog("AppDomain.UnhandledException", args.ExceptionObject as Exception);
+        };
+
+        try
+        {
+            Initialize();
+        }
+        catch (Exception ex)
+        {
+            WriteCrashLog("Startup-Exception", ex);
+            System.Windows.MessageBox.Show(
+                $"Fehler beim Starten:\n\n{ex.Message}\n\nDetails in crash.log neben der EXE.",
+                "myit.center - Fehler",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+        }
+    }
+
+    private void Initialize()
     {
         // Single Instance per User-Session (wichtig fuer Terminal Server)
         var sessionId = System.Diagnostics.Process.GetCurrentProcess().SessionId;
@@ -37,16 +66,61 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        base.OnStartup(e);
+        // Globaler WPF Exception-Handler
+        DispatcherUnhandledException += (_, args) =>
+        {
+            LogService.Error("Unbehandelte Exception", args.Exception);
+            WriteCrashLog("DispatcherUnhandledException", args.Exception);
+            args.Handled = true;
+        };
+
+        LogService.Info("=== TrayTicketTool gestartet ===");
+        LogService.Info($"Version: {typeof(App).Assembly.GetName().Version}");
+        LogService.Info($"User: {Environment.UserName}, Machine: {Environment.MachineName}");
+        LogService.Info($"OS: {Environment.OSVersion}");
+        LogService.Info($"EXE-Pfad: {Environment.ProcessPath}");
 
         _agentConfig = new AgentConfigService().Load();
         if (_agentConfig?.IsValid == true)
         {
+            LogService.Info($"Agent-Config geladen: api_url={_agentConfig.ApiUrl}, device_id={_agentConfig.DeviceId}");
             _replyService = new TicketReplyService(_agentConfig);
+            _messagesService = new TicketMessagesService(_agentConfig);
+        }
+        else
+        {
+            LogService.Warn("Keine gueltige Agent-Config gefunden — Offline-Modus");
         }
 
         CreateTrayIcon();
+        LogService.Info("Tray-Icon erstellt");
+
         StartStatusPolling();
+        LogService.Info("Startup abgeschlossen");
+    }
+
+    private static void WriteCrashLog(string context, Exception? ex)
+    {
+        try
+        {
+            var exePath = Environment.ProcessPath ?? AppContext.BaseDirectory;
+            var crashLogPath = Path.Combine(
+                Path.GetDirectoryName(exePath) ?? ".",
+                "crash.log");
+
+            var text = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {context}\n" +
+                       $"Message: {ex?.Message}\n" +
+                       $"Type: {ex?.GetType().FullName}\n" +
+                       $"StackTrace:\n{ex?.StackTrace}\n" +
+                       $"InnerException: {ex?.InnerException?.Message}\n" +
+                       $"---\n";
+
+            File.AppendAllText(crashLogPath, text);
+        }
+        catch
+        {
+            // Letzter Ausweg — kann nichts mehr tun
+        }
     }
 
     private void CreateTrayIcon()
@@ -68,12 +142,20 @@ public partial class App : System.Windows.Application
         _myTicketsItem.Click += (_, _) => OpenTicketListWindow();
         _myTicketsItem.Visible = _agentConfig?.EnableTicketStatus == true;
 
+        _screenRecordItem = new Forms.ToolStripMenuItem("Bildschirmaufnahme starten");
+        _screenRecordItem.Click += (_, _) => ToggleScreenRecording();
+
+        var logItem = new Forms.ToolStripMenuItem("Log-Datei oeffnen");
+        logItem.Click += (_, _) => OpenLogFile();
+
         var exitItem = new Forms.ToolStripMenuItem("Beenden");
         exitItem.Click += (_, _) => ExitApplication();
 
         contextMenu.Items.Add(ticketItem);
         contextMenu.Items.Add(_myTicketsItem);
+        contextMenu.Items.Add(_screenRecordItem);
         contextMenu.Items.Add(new Forms.ToolStripSeparator());
+        contextMenu.Items.Add(logItem);
         contextMenu.Items.Add(exitItem);
 
         _notifyIcon.ContextMenuStrip = contextMenu;
@@ -122,13 +204,11 @@ public partial class App : System.Windows.Application
                 text += $"\n{withReply} mit neuer Antwort";
         }
 
-        // NotifyIcon.Text max 128 Zeichen
         if (text.Length > 127)
             text = text[..127];
 
         _notifyIcon.Text = text;
 
-        // "Meine Tickets" Menuepunkt aktualisieren
         if (_myTicketsItem != null)
         {
             var count = tickets.Count;
@@ -181,7 +261,6 @@ public partial class App : System.Windows.Application
         _ticketWindow.Closed += (_, _) =>
         {
             _ticketWindow = null;
-            // Nach Ticket-Erstellung sofort Status aktualisieren
             _ = _statusService?.PollAsync();
         };
         _ticketWindow.Show();
@@ -198,28 +277,205 @@ public partial class App : System.Windows.Application
 
         var tickets = _statusService?.CurrentTickets ?? new List<TicketStatusInfo>();
 
-        _ticketListWindow = new TicketListWindow(tickets, OpenReplyWindow);
+        _ticketListWindow = new TicketListWindow(tickets, OpenTicketDetail);
         _ticketListWindow.Closed += (_, _) => _ticketListWindow = null;
         _ticketListWindow.Show();
         _ticketListWindow.Activate();
     }
 
-    private void OpenReplyWindow(TicketStatusInfo ticket)
+    private void OpenTicketDetail(TicketStatusInfo ticket)
+    {
+        if (_replyService == null || _messagesService == null) return;
+
+        var detailWindow = new TicketDetailWindow(ticket, _messagesService, _replyService, _agentConfig!);
+        detailWindow.Closed += (_, _) =>
+        {
+            _ = _statusService?.PollAsync();
+        };
+        detailWindow.Show();
+        detailWindow.Activate();
+    }
+
+    private void ToggleScreenRecording()
+    {
+        if (_screenRecordingService?.IsRecording == true)
+            StopScreenRecording();
+        else
+            StartScreenRecording();
+    }
+
+    private void StartScreenRecording()
+    {
+        try
+        {
+            _screenRecordingService ??= new ScreenRecordingService();
+
+            _screenRecordingService.RecordingCompleted += filePath =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    _recordingOverlay?.Close();
+                    _recordingOverlay = null;
+                    _screenRecordItem!.Text = "Bildschirmaufnahme starten";
+
+                    OfferVideoToTicket(filePath);
+                });
+            };
+
+            _screenRecordingService.RecordingFailed += error =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    _recordingOverlay?.Close();
+                    _recordingOverlay = null;
+                    _screenRecordItem!.Text = "Bildschirmaufnahme starten";
+
+                    System.Windows.MessageBox.Show(
+                        $"Bildschirmaufnahme fehlgeschlagen:\n{error}",
+                        "Fehler",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                });
+            };
+
+            _screenRecordingService.StartRecording();
+
+            _screenRecordItem!.Text = "Bildschirmaufnahme stoppen";
+
+            _recordingOverlay = new ScreenRecordingOverlay();
+            _recordingOverlay.StopRequested += () => Dispatcher.Invoke(StopScreenRecording);
+            _recordingOverlay.Show();
+
+            _notifyIcon?.ShowBalloonTip(2000, "Bildschirmaufnahme gestartet",
+                "Klicken Sie auf Stop im Overlay oder im Tray-Menue.",
+                Forms.ToolTipIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("Bildschirmaufnahme Start fehlgeschlagen", ex);
+            System.Windows.MessageBox.Show(
+                $"Fehler beim Starten der Aufnahme:\n{ex.Message}",
+                "Fehler",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private async void OfferVideoToTicket(string filePath)
+    {
+        // Fragen ob an Ticket anhaengen
+        var result = System.Windows.MessageBox.Show(
+            $"Bildschirmaufnahme gespeichert:\n{filePath}\n\nSoll der Dateipfad an ein Ticket angehaengt werden?",
+            "Aufnahme gespeichert",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (result != MessageBoxResult.Yes || _replyService == null)
+        {
+            // Nur im Explorer anzeigen
+            System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{filePath}\"");
+            return;
+        }
+
+        try
+        {
+            var tickets = _statusService?.CurrentTickets ?? new List<TicketStatusInfo>();
+
+            // Falls keine gecachten Tickets, nochmal pollen
+            if (tickets.Count == 0 && _statusService != null)
+            {
+                await _statusService.PollAsync();
+                tickets = _statusService.CurrentTickets;
+            }
+
+            if (tickets.Count == 0)
+            {
+                System.Windows.MessageBox.Show(
+                    "Keine offenen Tickets vorhanden.",
+                    "Hinweis",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var listWindow = new TicketListWindow(tickets, ticket =>
+            {
+                _ = SendVideoPathToTicket(ticket, filePath);
+            });
+            listWindow.Title = "Video an Ticket anhaengen";
+            listWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("Video-Ticket Zuordnung fehlgeschlagen", ex);
+            System.Windows.MessageBox.Show($"Fehler: {ex.Message}", "Fehler",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private async Task SendVideoPathToTicket(TicketStatusInfo ticket, string filePath)
     {
         if (_replyService == null) return;
 
-        var replyWindow = new TicketReplyWindow(ticket, _replyService);
-        replyWindow.Closed += (_, _) =>
+        try
         {
-            // Nach Reply sofort aktualisieren
-            _ = _statusService?.PollAsync();
-        };
-        replyWindow.Show();
-        replyWindow.Activate();
+            var hostname = Environment.MachineName;
+            var message = $"Bildschirmaufnahme erstellt.\n\nDateipfad auf {hostname}:\n{filePath}";
+
+            await _replyService.SendReplyAsync(ticket.TicketId, message, null);
+
+            System.Windows.MessageBox.Show(
+                $"Video-Pfad wurde an {ticket.TicketNumber} angehaengt.\n\n" +
+                $"Ein Support-Mitarbeiter wird sich das Video anschauen.",
+                "Erfolgreich",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+
+            LogService.Info($"Video-Pfad an Ticket {ticket.TicketNumber} gesendet: {filePath}");
+        }
+        catch (Exception ex)
+        {
+            LogService.Error($"Video-Pfad senden fehlgeschlagen: {ticket.TicketNumber}", ex);
+            System.Windows.MessageBox.Show($"Fehler beim Senden: {ex.Message}", "Fehler",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    private void StopScreenRecording()
+    {
+        _screenRecordingService?.StopRecording();
+        // RecordingCompleted-Event raeumt auf
+    }
+
+    private void OpenLogFile()
+    {
+        var logPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MyitCenter", "TrayTicketTool", "app.log");
+
+        if (File.Exists(logPath))
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = logPath,
+                UseShellExecute = true
+            });
+        }
+        else
+        {
+            System.Windows.MessageBox.Show(
+                $"Log-Datei nicht gefunden:\n{logPath}",
+                "Log",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
     }
 
     private void ExitApplication()
     {
+        LogService.Info("=== TrayTicketTool beendet ===");
+        _screenRecordingService?.Dispose();
+        _recordingOverlay?.Close();
         _statusService?.Dispose();
         _notifyIcon?.Dispose();
         _notifyIcon = null;

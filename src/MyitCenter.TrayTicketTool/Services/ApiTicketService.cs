@@ -26,8 +26,11 @@ public class ApiTicketService : ITicketService
     {
         ticket.DeviceId = _config.DeviceId;
 
+        LogService.Info($"Ticket erstellen: id={ticket.Id}, user={ticket.Username}, device_id={ticket.DeviceId}");
+
         // Lokal speichern als Backup
         var localResult = await _localFallback.SubmitTicketAsync(ticket, screenshotPng);
+        LogService.Info($"Lokales Backup gespeichert: {localResult.LocalPath}");
 
         try
         {
@@ -36,23 +39,31 @@ public class ApiTicketService : ITicketService
                 new AuthenticationHeaderValue("Bearer", _config.AgentToken);
 
             var url = $"{_config.ApiUrl.TrimEnd('/')}/api/agent/ticket";
+            LogService.Info($"API-Aufruf: POST {url}");
 
             using var content = new MultipartFormDataContent();
 
-            // Ticket-Daten als JSON
             var ticketJson = JsonSerializer.Serialize(ticket, JsonOptions);
             content.Add(new StringContent(ticketJson, Encoding.UTF8, "application/json"), "ticket");
 
-            // Screenshot als Datei
             var screenshotContent = new ByteArrayContent(screenshotPng);
             screenshotContent.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             content.Add(screenshotContent, "screenshot", $"{ticket.Id}.png");
 
-            var response = await client.PostAsync(url, content);
-            response.EnsureSuccessStatusCode();
+            LogService.Info($"Sende Ticket (JSON: {ticketJson.Length} Bytes, Screenshot: {screenshotPng.Length} Bytes)");
 
-            // API Response auswerten: {"success":true,"ticket_number":"TKT-2026-00175","ticket_id":230}
+            var response = await client.PostAsync(url, content);
             var responseJson = await response.Content.ReadAsStringAsync();
+
+            LogService.Info($"API-Antwort: HTTP {(int)response.StatusCode} — {responseJson}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                LogService.Error($"API-Fehler: HTTP {(int)response.StatusCode} — {responseJson}");
+                ticket.Status = "local";
+                return localResult;
+            }
+
             var apiResponse = JsonSerializer.Deserialize<JsonElement>(responseJson);
 
             string? ticketNumber = null;
@@ -60,6 +71,7 @@ public class ApiTicketService : ITicketService
                 ticketNumber = tn.GetString();
 
             ticket.Status = "submitted";
+            LogService.Info($"Ticket erfolgreich gesendet: {ticketNumber}");
 
             return new TicketResult
             {
@@ -68,9 +80,15 @@ public class ApiTicketService : ITicketService
                 LocalPath = localResult.LocalPath
             };
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
-            // API nicht erreichbar — lokales Backup bleibt bestehen
+            LogService.Error("API nicht erreichbar", ex);
+            ticket.Status = "local";
+            return localResult;
+        }
+        catch (Exception ex)
+        {
+            LogService.Error("Unerwarteter Fehler beim Ticket-Upload", ex);
             ticket.Status = "local";
             return localResult;
         }

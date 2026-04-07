@@ -102,9 +102,9 @@ public class TicketStatusService : IDisposable
             _lastTickets = tickets;
             TicketsUpdated?.Invoke(tickets);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Netzwerkfehler still ignorieren — naechster Poll versucht es erneut
+            LogService.Error("Ticket-Status Poll fehlgeschlagen", ex);
         }
     }
 
