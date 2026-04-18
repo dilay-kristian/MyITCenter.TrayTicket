@@ -84,8 +84,8 @@ public partial class TicketDetailWindow : Window
         var bubble = new Border
         {
             Background = new System.Windows.Media.SolidColorBrush(isAgent
-                ? System.Windows.Media.Color.FromRgb(0xEB, 0xF5, 0xFB)  // Blau fuer Support
-                : System.Windows.Media.Color.FromRgb(0xF0, 0xF0, 0xF0)), // Grau fuer Kunde
+                ? System.Windows.Media.Color.FromRgb(0xED, 0xE9, 0xFE)  // Helles Lila f\u00fcr Support
+                : System.Windows.Media.Color.FromRgb(0xF0, 0xF2, 0xF5)), // Hellgrau f\u00fcr Kunde
             CornerRadius = new CornerRadius(8),
             Padding = new Thickness(12, 8, 12, 8),
             Margin = new Thickness(
@@ -106,8 +106,8 @@ public partial class TicketDetailWindow : Window
             FontWeight = FontWeights.SemiBold,
             FontSize = 11,
             Foreground = new System.Windows.Media.SolidColorBrush(isAgent
-                ? System.Windows.Media.Color.FromRgb(0x29, 0x80, 0xB9)
-                : System.Windows.Media.Color.FromRgb(0x55, 0x55, 0x55))
+                ? System.Windows.Media.Color.FromRgb(0x6C, 0x5C, 0xE7)
+                : System.Windows.Media.Color.FromRgb(0x37, 0x41, 0x51))
         });
         header.Children.Add(new TextBlock
         {
@@ -125,7 +125,7 @@ public partial class TicketDetailWindow : Window
             {
                 Text = msg.Body,
                 FontSize = 13,
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x2C, 0x3E, 0x50)),
+                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x1A, 0x1A, 0x2E)),
                 TextWrapping = TextWrapping.Wrap
             });
         }
@@ -234,7 +234,7 @@ public partial class TicketDetailWindow : Window
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Datei anhaengen",
+            Title = "Datei anhängen",
             Multiselect = true,
             Filter = "Alle Dateien (*.*)|*.*|Log-Dateien (*.log;*.txt)|*.log;*.txt|Bilder (*.png;*.jpg)|*.png;*.jpg"
         };
@@ -259,7 +259,7 @@ public partial class TicketDetailWindow : Window
             parts.Add(Path.GetFileName(path));
 
         AttachmentList.Text = parts.Count > 0
-            ? $"Anhaenge: {string.Join(", ", parts)}"
+            ? $"Anhänge: {string.Join(", ", parts)}"
             : "";
     }
 
@@ -273,7 +273,7 @@ public partial class TicketDetailWindow : Window
         if (string.IsNullOrEmpty(message) && screenshotPng == null && _attachmentPaths.Count == 0)
         {
             System.Windows.MessageBox.Show(
-                "Bitte eine Nachricht eingeben, einen Screenshot aufnehmen oder eine Datei anhaengen.",
+                "Bitte eine Nachricht eingeben, einen Screenshot aufnehmen oder eine Datei anhängen.",
                 "Hinweis",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -312,6 +312,17 @@ public partial class TicketDetailWindow : Window
         {
             SendButton.IsEnabled = true;
         }
+    }
+
+    private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
+            DragMove();
+    }
+
+    private void CloseWindow_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 
     protected override void OnClosed(EventArgs e)

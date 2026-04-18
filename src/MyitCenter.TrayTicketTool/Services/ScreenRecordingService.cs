@@ -29,7 +29,7 @@ public class ScreenRecordingService : IDisposable
     public string StartRecording(int fps = 10)
     {
         if (_recording)
-            throw new InvalidOperationException("Aufnahme laeuft bereits.");
+            throw new InvalidOperationException("Aufnahme läuft bereits.");
 
         Directory.CreateDirectory(RecordingsDir);
 
@@ -75,14 +75,24 @@ public class ScreenRecordingService : IDisposable
         }
     }
 
+    private const int MaxRecordingMinutes = 10;
+
     private void CaptureLoop(Rectangle bounds, int fps)
     {
         var frameInterval = TimeSpan.FromMilliseconds(1000.0 / fps);
+        var maxDuration = TimeSpan.FromMinutes(MaxRecordingMinutes);
 
         try
         {
             while (_recording)
             {
+                // Automatisch stoppen nach Limit
+                if (StartedAt.HasValue && DateTime.Now - StartedAt.Value > maxDuration)
+                {
+                    LogService.Warn($"Bildschirmaufnahme nach {MaxRecordingMinutes} Minuten automatisch gestoppt.");
+                    _recording = false;
+                    break;
+                }
                 var frameStart = DateTime.UtcNow;
 
                 using var bitmap = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format32bppArgb);

@@ -1,5 +1,3 @@
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text.Json;
 using MyitCenter.TrayTicketTool.Models;
 
@@ -8,24 +6,22 @@ namespace MyitCenter.TrayTicketTool.Services;
 public class TicketMessagesService
 {
     private readonly AgentConfig _config;
+    private readonly ApiHttpClient _http;
 
     public TicketMessagesService(AgentConfig config)
     {
         _config = config;
+        _http = ApiHttpClient.GetInstance(config);
     }
 
     public async Task<(string? Subject, List<TicketMessage> Messages)> GetMessagesAsync(int ticketId)
     {
-        using var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _config.AgentToken);
-
         var username = Environment.UserName;
         var url = $"{_config.ApiUrl.TrimEnd('/')}/api/agent/ticket/{ticketId}/messages?username={Uri.EscapeDataString(username)}";
 
         LogService.Info($"Lade Nachrichten: GET {url}");
 
-        var response = await client.GetAsync(url);
+        var response = await _http.GetAsync(url);
         var json = await response.Content.ReadAsStringAsync();
 
         LogService.Info($"Messages-Antwort: HTTP {(int)response.StatusCode}");

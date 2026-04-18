@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 using MyitCenter.TrayTicketTool.Services;
 using MyitCenter.TrayTicketTool.ViewModels;
 
@@ -48,5 +49,16 @@ public partial class TicketWindow : Window
                 return null;
             });
         };
+    }
+
+    private void TitleBar_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Left)
+            DragMove();
+    }
+
+    private void Close_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 }

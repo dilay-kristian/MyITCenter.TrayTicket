@@ -137,7 +137,11 @@ public class TicketViewModel : INotifyPropertyChanged
 
     public string ConnectionStatus => IsConnected
         ? $"Verbunden mit {_agentConfig!.ApiUrl}"
-        : "Offline-Modus (keine Agent-Konfiguration gefunden)";
+        : "Offline-Modus (keine Agent-Konfiguration)";
+
+    public System.Windows.Media.Brush ConnectionDot => IsConnected
+        ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0x00, 0xB8, 0x94))
+        : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0xEF, 0x44, 0x44));
 
     public string SystemInfoSummary =>
         $"Benutzer: {SystemInfo.Username}  |  Hostname: {SystemInfo.Hostname}\n" +

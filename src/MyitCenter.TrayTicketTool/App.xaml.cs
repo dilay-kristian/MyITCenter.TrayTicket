@@ -58,7 +58,7 @@ public partial class App : System.Windows.Application
         if (!isNew)
         {
             System.Windows.MessageBox.Show(
-                "Das Ticket Tool laeuft bereits.",
+                "Das Ticket Tool läuft bereits.",
                 "myit.center",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -84,6 +84,11 @@ public partial class App : System.Windows.Application
         if (_agentConfig?.IsValid == true)
         {
             LogService.Info($"Agent-Config geladen: api_url={_agentConfig.ApiUrl}, device_id={_agentConfig.DeviceId}");
+
+            var http = ApiHttpClient.GetInstance(_agentConfig);
+            http.ConnectionStatusChanged += online =>
+                Dispatcher.Invoke(() => UpdateConnectionStatus(online));
+
             _replyService = new TicketReplyService(_agentConfig);
             _messagesService = new TicketMessagesService(_agentConfig);
         }
@@ -145,7 +150,7 @@ public partial class App : System.Windows.Application
         _screenRecordItem = new Forms.ToolStripMenuItem("Bildschirmaufnahme starten");
         _screenRecordItem.Click += (_, _) => ToggleScreenRecording();
 
-        var logItem = new Forms.ToolStripMenuItem("Log-Datei oeffnen");
+        var logItem = new Forms.ToolStripMenuItem("Log-Datei öffnen");
         logItem.Click += (_, _) => OpenLogFile();
 
         var exitItem = new Forms.ToolStripMenuItem("Beenden");
@@ -232,7 +237,7 @@ public partial class App : System.Windows.Application
         }
         else
         {
-            title = "Ticket-Status geaendert";
+            title = "Ticket-Status geändert";
             message = $"{ticket.TicketNumber}: {ticket.StatusLabel}";
         }
 
@@ -347,7 +352,7 @@ public partial class App : System.Windows.Application
             _recordingOverlay.Show();
 
             _notifyIcon?.ShowBalloonTip(2000, "Bildschirmaufnahme gestartet",
-                "Klicken Sie auf Stop im Overlay oder im Tray-Menue.",
+                "Klicken Sie auf Stop im Overlay oder im Tray-Menü.",
                 Forms.ToolTipIcon.Info);
         }
         catch (Exception ex)
@@ -365,7 +370,7 @@ public partial class App : System.Windows.Application
     {
         // Fragen ob an Ticket anhaengen
         var result = System.Windows.MessageBox.Show(
-            $"Bildschirmaufnahme gespeichert:\n{filePath}\n\nSoll der Dateipfad an ein Ticket angehaengt werden?",
+            $"Bildschirmaufnahme gespeichert:\n{filePath}\n\nSoll der Dateipfad an ein Ticket angehängt werden?",
             "Aufnahme gespeichert",
             MessageBoxButton.YesNo,
             MessageBoxImage.Question);
@@ -402,7 +407,7 @@ public partial class App : System.Windows.Application
             {
                 _ = SendVideoPathToTicket(ticket, filePath);
             });
-            listWindow.Title = "Video an Ticket anhaengen";
+            listWindow.Title = "Video an Ticket anhängen";
             listWindow.Show();
         }
         catch (Exception ex)
@@ -425,7 +430,7 @@ public partial class App : System.Windows.Application
             await _replyService.SendReplyAsync(ticket.TicketId, message, null);
 
             System.Windows.MessageBox.Show(
-                $"Video-Pfad wurde an {ticket.TicketNumber} angehaengt.\n\n" +
+                $"Video-Pfad wurde an {ticket.TicketNumber} angehängt.\n\n" +
                 $"Ein Support-Mitarbeiter wird sich das Video anschauen.",
                 "Erfolgreich",
                 MessageBoxButton.OK,
@@ -445,6 +450,33 @@ public partial class App : System.Windows.Application
     {
         _screenRecordingService?.StopRecording();
         // RecordingCompleted-Event raeumt auf
+    }
+
+    private void UpdateConnectionStatus(bool online)
+    {
+        if (_notifyIcon == null) return;
+
+        // Tray-Tooltip aktualisieren
+        var status = online ? "Verbunden" : "Offline";
+        var currentText = _notifyIcon.Text ?? "";
+        if (currentText.Contains('\n'))
+            currentText = currentText[..currentText.IndexOf('\n')];
+        var tooltip = $"{currentText}\nStatus: {status}";
+        if (tooltip.Length > 127) tooltip = tooltip[..127];
+        _notifyIcon.Text = tooltip;
+
+        if (online)
+        {
+            _notifyIcon.ShowBalloonTip(2000, "Verbindung hergestellt",
+                "Die Verbindung zum Server wurde wiederhergestellt.",
+                Forms.ToolTipIcon.Info);
+        }
+        else
+        {
+            _notifyIcon.ShowBalloonTip(3000, "Verbindung unterbrochen",
+                "Der Server ist nicht erreichbar. Tickets werden lokal gespeichert.",
+                Forms.ToolTipIcon.Warning);
+        }
     }
 
     private void OpenLogFile()

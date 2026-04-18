@@ -42,8 +42,18 @@ public static class LogService
         }
     }
 
-    public static void Info(string message) => Write("INFO", message);
-    public static void Warn(string message) => Write("WARN", message);
-    public static void Error(string message) => Write("ERROR", message);
-    public static void Error(string message, Exception ex) => Write("ERROR", $"{message}: {ex.Message}\n{ex.StackTrace}");
+    public static void Info(string message) => Write("INFO", MaskSecrets(message));
+    public static void Warn(string message) => Write("WARN", MaskSecrets(message));
+    public static void Error(string message) => Write("ERROR", MaskSecrets(message));
+    public static void Error(string message, Exception ex) => Write("ERROR", MaskSecrets($"{message}: {ex.Message}\n{ex.StackTrace}"));
+
+    private static string MaskSecrets(string message)
+    {
+        // agent_token, Bearer Token und aehnliches maskieren
+        message = System.Text.RegularExpressions.Regex.Replace(
+            message, @"(agent_token|Bearer|token)[""=:\s]+([A-Za-z0-9_\-]{8})[A-Za-z0-9_\-]+",
+            "$1=***$2...",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return message;
+    }
 }

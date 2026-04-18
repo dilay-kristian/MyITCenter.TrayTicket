@@ -8,18 +8,16 @@ namespace MyitCenter.TrayTicketTool.Services;
 public class TicketReplyService
 {
     private readonly AgentConfig _config;
+    private readonly ApiHttpClient _http;
 
     public TicketReplyService(AgentConfig config)
     {
         _config = config;
+        _http = ApiHttpClient.GetInstance(config);
     }
 
     public async Task<bool> SendReplyAsync(int ticketId, string? message, byte[]? screenshotPng, List<string>? filePaths = null)
     {
-        using var client = new HttpClient();
-        client.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _config.AgentToken);
-
         var url = $"{_config.ApiUrl.TrimEnd('/')}/api/agent/ticket/{ticketId}/reply";
 
         LogService.Info($"Reply senden: POST {url}");
@@ -53,10 +51,10 @@ public class TicketReplyService
             }
         }
 
-        var response = await client.PostAsync(url, content);
+        var response = await _http.PostAsync(url, content);
         var responseBody = await response.Content.ReadAsStringAsync();
 
-        LogService.Info($"Reply-Antwort: HTTP {(int)response.StatusCode} — {responseBody}");
+        LogService.Info($"Reply-Antwort: HTTP {(int)response.StatusCode}");
 
         response.EnsureSuccessStatusCode();
         return true;

@@ -2,64 +2,86 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="myit.center - Ticket Details"
-        Width="580" Height="650"
-        MinWidth="480" MinHeight="500"
+        Width="600" Height="680"
+        MinWidth="500" MinHeight="520"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanResizeWithGrip"
-        Background="{StaticResource BackgroundBrush}">
+        Background="{StaticResource BackgroundBrush}"
+        WindowStyle="None" AllowsTransparency="True">
 
-    <DockPanel Margin="20">
-        <!-- Header -->
-        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-            <TextBlock x:Name="TicketNumberText" FontSize="20" FontWeight="Bold"
-                       Foreground="{StaticResource AccentBrush}" />
-            <TextBlock x:Name="SubjectText" FontSize="13"
-                       Foreground="{StaticResource TextBrush}" Margin="0,4,0,0"
-                       TextWrapping="Wrap" />
-        </StackPanel>
+    <Border CornerRadius="12" Background="{StaticResource BackgroundBrush}"
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="20" Opacity="0.4" ShadowDepth="0" Color="Black" />
+        </Border.Effect>
 
-        <!-- Reply-Bereich unten -->
-        <Border DockPanel.Dock="Bottom" Background="{StaticResource CardBrush}"
-                CornerRadius="6" Padding="12" Margin="0,12,0,0">
-            <StackPanel>
-                <TextBlock Text="Antworten:" FontWeight="SemiBold" FontSize="13"
-                           Foreground="{StaticResource TextBrush}" Margin="0,0,0,8" />
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
 
-                <TextBox x:Name="ReplyBox" AcceptsReturn="True" TextWrapping="Wrap"
-                         Height="60" FontSize="13" Padding="8,6"
-                         BorderBrush="#DDD" BorderThickness="1"
-                         VerticalScrollBarVisibility="Auto" />
+            <!-- Title Bar -->
+            <Border Grid.Row="0" Background="{StaticResource CardBrush}"
+                    CornerRadius="12,12,0,0" MouseLeftButtonDown="TitleBar_MouseDown">
+                <Grid Margin="16,0">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock x:Name="TicketNumberText" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentLightBrush}" />
+                        <TextBlock Text=" — " Foreground="{StaticResource SubtextBrush}" FontSize="13"
+                                   VerticalAlignment="Center" />
+                        <TextBlock x:Name="SubjectText" FontSize="13"
+                                   Foreground="{StaticResource TextBrush}"
+                                   TextTrimming="CharacterEllipsis" MaxWidth="350" />
+                    </StackPanel>
+                    <Button Content="✕" HorizontalAlignment="Right"
+                            Background="Transparent" Foreground="{StaticResource SubtextBrush}"
+                            FontSize="14" Padding="8,4"
+                            Click="CloseWindow_Click" />
+                </Grid>
+            </Border>
 
-                <!-- Anhaenge -->
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <Button Content="Screenshot" Padding="10,4" FontSize="12"
-                            Margin="0,0,8,0" Cursor="Hand"
-                            Click="Screenshot_Click" />
-                    <Button Content="Datei anhaengen..." Padding="10,4" FontSize="12"
-                            Margin="0,0,8,0" Cursor="Hand"
-                            Click="AttachFile_Click" />
-                </StackPanel>
+            <!-- Content -->
+            <DockPanel Grid.Row="1" Margin="16,12,16,16">
+                <!-- Reply-Bereich unten -->
+                <Border DockPanel.Dock="Bottom" Background="{StaticResource CardBrush}"
+                        CornerRadius="10" Padding="14" Margin="0,12,0,0">
+                    <StackPanel>
+                        <TextBox x:Name="ReplyBox" AcceptsReturn="True" TextWrapping="Wrap"
+                                 Height="60"
+                                 VerticalScrollBarVisibility="Auto" />
 
-                <TextBlock x:Name="AttachmentList" FontSize="11"
-                           Foreground="{StaticResource SubtextBrush}" Margin="0,4,0,0"
-                           TextWrapping="Wrap" />
+                        <Grid Margin="0,10,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Screenshot" Padding="10,6" FontSize="12"
+                                        Margin="0,0,6,0"
+                                        Click="Screenshot_Click" />
+                                <Button Content="Datei" Padding="10,6" FontSize="12"
+                                        Click="AttachFile_Click" />
+                            </StackPanel>
 
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-                    <TextBlock x:Name="StatusText" FontSize="12"
-                               Foreground="{StaticResource SubtextBrush}"
-                               VerticalAlignment="Center" Margin="0,0,12,0" />
-                    <Button x:Name="SendButton" Content="Absenden" Padding="16,6"
-                            FontWeight="SemiBold" Cursor="Hand"
-                            Click="Send_Click" />
-                </StackPanel>
-            </StackPanel>
-        </Border>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <TextBlock x:Name="StatusText" FontSize="11"
+                                           Foreground="{StaticResource SubtextBrush}"
+                                           VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <Button x:Name="SendButton" Content="Senden"
+                                        Style="{StaticResource AccentButton}"
+                                        Padding="16,8" FontSize="13"
+                                        Click="Send_Click" />
+                            </StackPanel>
+                        </Grid>
 
-        <!-- Nachrichten-Liste (Chat) -->
-        <Border Background="{StaticResource CardBrush}" CornerRadius="6" Padding="4">
-            <ScrollViewer x:Name="MessagesScroll" VerticalScrollBarVisibility="Auto">
-                <StackPanel x:Name="MessagesPanel" />
-            </ScrollViewer>
-        </Border>
-    </DockPanel>
+                        <TextBlock x:Name="AttachmentList" FontSize="11"
+                                   Foreground="{StaticResource SubtextBrush}" Margin="0,6,0,0"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Nachrichten -->
+                <ScrollViewer x:Name="MessagesScroll" VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="MessagesPanel" />
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+    </Border>
 </Window>

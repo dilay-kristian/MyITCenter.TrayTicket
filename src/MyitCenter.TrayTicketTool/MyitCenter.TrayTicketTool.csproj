@@ -14,6 +14,7 @@
     <Company>myit.center</Company>
     <Product>myit.center Ticket Tool</Product>
     <Description>System-Tray Ticket Tool fuer myit.center</Description>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
   </PropertyGroup>
 
   <ItemGroup>

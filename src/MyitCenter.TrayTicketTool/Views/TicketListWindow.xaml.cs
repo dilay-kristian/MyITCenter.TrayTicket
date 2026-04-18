@@ -68,6 +68,12 @@ public partial class TicketListWindow : Window
         }
     }
 
+    private void TitleBar_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == System.Windows.Input.MouseButton.Left)
+            DragMove();
+    }
+
     private void TicketList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         Reply_Click(sender, e);

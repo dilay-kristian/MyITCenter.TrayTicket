@@ -1,7 +1,7 @@
 <Window x:Class="MyitCenter.TrayTicketTool.Views.TicketReplyWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="myit.center - Nachricht hinzufuegen"
+        Title="myit.center - Nachricht hinzufügen"
         Width="520" Height="550"
         MinWidth="420" MinHeight="450"
         WindowStartupLocation="CenterScreen"

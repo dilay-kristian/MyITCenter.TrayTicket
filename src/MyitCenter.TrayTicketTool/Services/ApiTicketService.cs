@@ -9,6 +9,7 @@ namespace MyitCenter.TrayTicketTool.Services;
 public class ApiTicketService : ITicketService
 {
     private readonly AgentConfig _config;
+    private readonly ApiHttpClient _http;
     private readonly LocalTicketService _localFallback = new();
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -20,6 +21,7 @@ public class ApiTicketService : ITicketService
     public ApiTicketService(AgentConfig config)
     {
         _config = config;
+        _http = ApiHttpClient.GetInstance(config);
     }
 
     public async Task<TicketResult> SubmitTicketAsync(Ticket ticket, byte[] screenshotPng)
@@ -28,16 +30,11 @@ public class ApiTicketService : ITicketService
 
         LogService.Info($"Ticket erstellen: id={ticket.Id}, user={ticket.Username}, device_id={ticket.DeviceId}");
 
-        // Lokal speichern als Backup
         var localResult = await _localFallback.SubmitTicketAsync(ticket, screenshotPng);
         LogService.Info($"Lokales Backup gespeichert: {localResult.LocalPath}");
 
         try
         {
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", _config.AgentToken);
-
             var url = $"{_config.ApiUrl.TrimEnd('/')}/api/agent/ticket";
             LogService.Info($"API-Aufruf: POST {url}");
 
@@ -52,10 +49,10 @@ public class ApiTicketService : ITicketService
 
             LogService.Info($"Sende Ticket (JSON: {ticketJson.Length} Bytes, Screenshot: {screenshotPng.Length} Bytes)");
 
-            var response = await client.PostAsync(url, content);
+            var response = await _http.PostAsync(url, content);
             var responseJson = await response.Content.ReadAsStringAsync();
 
-            LogService.Info($"API-Antwort: HTTP {(int)response.StatusCode} — {responseJson}");
+            LogService.Info($"API-Antwort: HTTP {(int)response.StatusCode}");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -80,15 +77,9 @@ public class ApiTicketService : ITicketService
                 LocalPath = localResult.LocalPath
             };
         }
-        catch (HttpRequestException ex)
-        {
-            LogService.Error("API nicht erreichbar", ex);
-            ticket.Status = "local";
-            return localResult;
-        }
         catch (Exception ex)
         {
-            LogService.Error("Unerwarteter Fehler beim Ticket-Upload", ex);
+            LogService.Error("API nicht erreichbar", ex);
             ticket.Status = "local";
             return localResult;
         }
